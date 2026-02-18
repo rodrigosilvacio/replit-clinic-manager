@@ -27,6 +27,16 @@ Full-stack clinic management system with patient registration, scheduling, elect
 - Inventory management with stock alerts
 - Financial management (receivables, payables)
 - Dashboard with KPIs
+- WhatsApp notifications via Z-API (appointment reminders)
+
+## Z-API Integration (WhatsApp)
+- Module: `server/zapi.ts` - Handles sending WhatsApp text messages via Z-API REST API
+- Triggered on: Appointment creation (POST /api/consultas) - sends reminder to patient
+- Secrets required: ZAPI_INSTANCE_ID, ZAPI_INSTANCE_TOKEN, ZAPI_CLIENT_TOKEN
+- API endpoint: `https://api.z-api.io/instances/{ID}/token/{TOKEN}/send-text`
+- Phone format: Auto-prepends country code 55 (Brazil) if not present
+- Non-blocking: WhatsApp send failures don't prevent appointment creation
+- Response includes `whatsappSent: boolean` to indicate if message was delivered
 
 ## Default Credentials
 - Admin: admin@nina.com / admin123

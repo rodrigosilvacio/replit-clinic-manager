@@ -38,10 +38,14 @@ export default function AgendaPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/consultas", data),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/consultas"] });
       setDialogOpen(false);
-      toast({ title: "Consulta agendada com sucesso" });
+      if (data?.whatsappSent) {
+        toast({ title: "Consulta agendada com sucesso", description: "Lembrete enviado por WhatsApp para o paciente" });
+      } else {
+        toast({ title: "Consulta agendada com sucesso" });
+      }
     },
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });

@@ -16,6 +16,9 @@ import {
   insertRecebimentoSchema,
   insertPagamentoSchema,
 } from "@shared/schema";
+import { sendWhatsAppText, buildAgendamentoMessage } from "./zapi";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import memorystore from "memorystore";
 
 const MemoryStore = memorystore(session);
@@ -204,7 +207,32 @@ export async function registerRoutes(
       const conflict = await storage.checkConsultaConflict(validated.colaboradorId, validated.inicio, validated.fim);
       if (conflict) return res.status(409).json({ message: "Ja existe uma consulta agendada para este profissional neste horario" });
       const result = await storage.createConsulta(validated);
-      res.status(201).json(result);
+
+      let whatsappSent = false;
+      try {
+        const paciente = await storage.getPaciente(validated.pacienteId);
+        const colaborador = await storage.getColaborador(validated.colaboradorId);
+        const servico = await storage.getServico(validated.servicoId);
+
+        if (paciente?.telefone && colaborador && servico) {
+          const message = buildAgendamentoMessage({
+            pacienteNome: paciente.nome,
+            data: format(validated.inicio, "dd/MM/yyyy", { locale: ptBR }),
+            hora: format(validated.inicio, "HH:mm"),
+            profissionalNome: colaborador.nome,
+            servicoNome: servico.nome,
+          });
+          const zapResult = await sendWhatsAppText(paciente.telefone, message);
+          whatsappSent = zapResult.success;
+          if (!zapResult.success) {
+            console.warn(`[Z-API] Falha ao enviar lembrete para ${paciente.nome}: ${zapResult.error}`);
+          }
+        }
+      } catch (zapErr: any) {
+        console.warn(`[Z-API] Erro ao enviar notificacao WhatsApp: ${zapErr.message}`);
+      }
+
+      res.status(201).json({ ...result, whatsappSent });
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
