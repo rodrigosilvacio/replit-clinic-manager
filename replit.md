@@ -39,6 +39,12 @@ Full-stack clinic management system with patient registration, scheduling, elect
 - Schema push: `npm run db:push`
 - Auto-seeds on first run
 
+## Security
+- Zod validation on all create/update API routes
+- RBAC enforcement via middleware on all endpoints
+- Session stores user role for authorization checks
+- Passwords hashed with bcryptjs
+
 ## Running
 - `npm run dev` starts the full application
 - Frontend binds to port 5000
