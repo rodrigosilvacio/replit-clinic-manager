@@ -1,0 +1,44 @@
+# Nina - Gestao de Clinicas
+
+## Overview
+Full-stack clinic management system with patient registration, scheduling, electronic health records, inventory, financial management, and RBAC.
+
+## Tech Stack
+- Frontend: React + TypeScript + Tailwind + Shadcn/ui
+- Backend: Express + TypeScript
+- Database: PostgreSQL with Drizzle ORM
+- Auth: Session-based with bcryptjs
+
+## Project Structure
+- `client/src/pages/` - All page components (login, dashboard, pacientes, agenda, etc.)
+- `client/src/components/` - Reusable components (app-sidebar, ui/)
+- `client/src/lib/` - Utilities (auth context, queryClient)
+- `server/` - Express server, routes, storage layer, seed data
+- `shared/schema.ts` - Drizzle schema definitions and Zod validation
+
+## Key Features (MVP)
+- Authentication with role-based access (ADMIN, RECEPCAO, PROFISSIONAL_SAUDE, FINANCEIRO)
+- Patient management (CRUD)
+- Collaborator management (CRUD)
+- Service/procedure management
+- Weekly agenda/calendar view
+- Appointment management with status flow
+- Electronic health records (prontuario)
+- Inventory management with stock alerts
+- Financial management (receivables, payables)
+- Dashboard with KPIs
+
+## Default Credentials
+- Admin: admin@nina.com / admin123
+- Recepcao: maria@nina.com / user123
+- Profissional: carlos@nina.com / user123
+- Financeiro: ana@nina.com / user123
+
+## Database
+- PostgreSQL via Drizzle ORM
+- Schema push: `npm run db:push`
+- Auto-seeds on first run
+
+## Running
+- `npm run dev` starts the full application
+- Frontend binds to port 5000

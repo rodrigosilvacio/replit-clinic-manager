@@ -60,6 +60,22 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Push schema and seed
+  const { execSync } = await import("child_process");
+  try {
+    execSync("npm run db:push --force", { stdio: "inherit" });
+    log("Database schema pushed successfully", "db");
+  } catch (e) {
+    console.error("Failed to push db schema:", e);
+  }
+
+  try {
+    const { seed } = await import("./seed");
+    await seed();
+  } catch (e) {
+    console.error("Seed error:", e);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
