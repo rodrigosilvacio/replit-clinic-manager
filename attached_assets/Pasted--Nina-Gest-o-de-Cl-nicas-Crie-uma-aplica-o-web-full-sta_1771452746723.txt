@@ -1,0 +1,156 @@
+# Nina | Gestão de Clínicas 
+
+Crie uma aplicação web full-stack chamada **Nina** para gestão de clínicas com:
+- Cadastros (Pacientes/Clientes, Colaboradores, Serviços/Procedimentos, Fornecedores)
+- Agenda
+- Consultas/Atendimentos
+- Prontuário Eletrônico
+- Estoque
+- Lembretes automáticos
+- Gestão Financeira (contas a receber/pagar e fluxo de caixa)
+- Relatórios e dashboards básicos
+- Segurança e LGPD (perfis de acesso + auditoria)
+
+## Stack (preferência)
+- Frontend: React + TypeScript + Tailwind
+- Backend: Node.js (Express) + TypeScript
+- Banco: PostgreSQL (usar ORM Prisma)
+- Autenticação: JWT + refresh token
+- Deploy/Run: tudo rodando dentro do Replit
+
+Se o Replit sugerir outra stack equivalente, pode usar, mas mantenha:
+- API REST
+- Banco relacional
+- Migrations
+- Estrutura modular e escalável
+
+---
+
+## Perfis de usuário (RBAC)
+- ADMIN: tudo
+- RECEPCAO: agenda, cadastro paciente, consulta (status), financeiro básico (registrar pagamento), NÃO vê detalhes clínicos do prontuário
+- PROFISSIONAL_SAUDE: agenda própria, consultas, prontuário, NÃO acessa financeiro completo
+- FINANCEIRO: contas a pagar/receber, relatórios financeiros, NÃO altera prontuário
+
+Implemente middleware de autorização por papel e por recurso.
+
+---
+
+## Entidades e Regras (MVP)
+
+### Paciente
+Campos: id, nome, cpf(opcional), data_nascimento, sexo(opcional), telefone, email, endereco, convenio(opcional), numero_convenio(opcional),
+contato_emergencia(opcional), alergias_alertas(opcional), consentimento_lgpd(boolean), createdAt, updatedAt.
+
+### Colaborador
+Campos: id, nome, email, telefone, papel (ADMIN/RECEPCAO/PROFISSIONAL_SAUDE/FINANCEIRO),
+especialidade(opcional), registro_profissional(opcional), ativo(boolean), createdAt.
+
+### Sala (opcional, mas recomendado)
+Campos: id, nome, descricao(opcional), ativa(boolean)
+
+### Servico/Procedimento
+Campos: id, nome, duracao_min, preco, descricao(opcional), ativo(boolean)
+
+### Agenda / Slot
+Modelar disponibilidade e bloqueios:
+- Disponibilidade: colaboradorId, diaSemana, horaInicio, horaFim
+- Bloqueio: colaboradorId, inicio, fim, motivo
+
+### Consulta (Agendamento)
+Campos: id, pacienteId, colaboradorId, salaId(opcional), servicoId, inicio, fim,
+status (AGENDADA, CONFIRMADA, EM_ATENDIMENTO, CONCLUIDA, CANCELADA, FALTOU),
+observacoes_agendamento(opcional), createdAt.
+Regras:
+- impedir conflito de horário para o mesmo colaborador e mesma sala (se sala existir)
+- permitir encaixe via flag "encaixe" (opcional) apenas para ADMIN/RECEPCAO
+
+### Prontuario (PEP)
+Cada consulta concluída pode ter registros clínicos.
+- RegistroProntuario: id, consultaId, tipo (ANAMNESE, EVOLUCAO, PRESCRICAO, ATESTADO, EXAME, OUTRO),
+texto, anexos(opcional), criadoPor(colaboradorId), createdAt, updatedAt.
+Regras:
+- RECEPCAO não acessa texto clínico (apenas vê que existe prontuário e data)
+- manter auditoria: logs de leitura e alteração
+
+### Estoque
+- ItemEstoque: id, nome, sku(opcional), unidade (UN, CX, ML etc), estoqueMinimo, ativo, createdAt
+- LoteEstoque: id, itemId, numeroLote(opcional), validade(opcional), custoUnitario, quantidadeAtual
+- MovimentacaoEstoque: id, itemId, loteId(opcional), tipo (ENTRADA, SAIDA, AJUSTE),
+quantidade, motivo, referenciaConsultaId(opcional), createdAt
+Regras:
+- alertas de estoque baixo e vencimento próximo (30 dias)
+
+### Financeiro
+- Recebimento: id, consultaId(opcional), pacienteId(opcional), descricao, valor, formaPagamento (PIX, CARTAO, DINHEIRO, BOLETO, TRANSFERENCIA),
+status (PENDENTE, PAGO, ESTORNADO), dataCompetencia, dataPagamento(opcional), createdAt
+- Pagamento: id, fornecedorId(opcional), descricao, valor, categoria(opcional), status (PENDENTE, PAGO),
+dataCompetencia, dataPagamento(opcional)
+- RepasseProfissional (opcional no MVP): consultaId, colaboradorId, percentual, valor
+
+Relatórios:
+- faturamento por período
+- faturamento por profissional
+- contas a receber em aberto
+- fluxo de caixa (entradas/saídas por dia)
+
+---
+
+## Lembretes
+Criar um módulo de lembretes:
+- Reminder: id, consultaId, canal (WHATSAPP, SMS, EMAIL), status (PENDENTE, ENVIADO, FALHOU),
+agendadoPara(datetime), payloadMensagem, tentativas, createdAt.
+No MVP, se integração real não estiver pronta:
+- implementar "mock sender" que registra no banco e exibe em uma tela de Logs.
+Mas deixar arquitetura pronta para integrar WhatsApp (ex.: Z-API/Twilio) depois.
+
+---
+
+## API (REST) — Endpoints mínimos
+- Auth: POST /auth/login, POST /auth/refresh, POST /auth/logout
+- Pacientes: CRUD + busca
+- Colaboradores: CRUD + ativar/desativar
+- Serviços: CRUD
+- Agenda: definir disponibilidade, criar bloqueios, listar agenda por dia/semana
+- Consultas: CRUD, alterar status, check-in
+- Prontuário: criar/listar por consulta e por paciente, anexos
+- Estoque: CRUD itens, entradas/saídas, alertas
+- Financeiro: contas a receber/pagar, relatórios
+- Logs/Auditoria: listar eventos (ADMIN)
+
+Implemente validação (zod ou equivalente) em todas as rotas.
+
+---
+
+## UI (telas)
+- Login
+- Dashboard (hoje: próximas consultas, faltas, financeiro do dia, estoque crítico)
+- Pacientes (lista, criar/editar, detalhes com histórico)
+- Agenda (calendário dia/semana por profissional + salas)
+- Consultas (lista e detalhes)
+- Prontuário (por consulta/paciente, editor simples, anexos)
+- Estoque (itens, lotes, movimentações, alertas)
+- Financeiro (receber/pagar, fluxo de caixa, relatórios)
+- Configurações (serviços, colaboradores, salas, modelos de mensagem)
+
+---
+
+## Requisitos não funcionais
+- Migrations e seed inicial (criar um ADMIN padrão)
+- Logs de auditoria (login, leitura/alteração de prontuário, alterações financeiras)
+- Tratamento de erros padronizado (JSON)
+- README com instruções de rodar no Replit
+- Testes básicos (pelo menos para regras de conflito de agenda)
+
+---
+
+## Entrega
+Gere o projeto completo com:
+- Estrutura de pastas organizada (frontend/backend)
+- Banco com Prisma schema + migrations
+- Rotas principais implementadas
+- UI navegável e funcional para o MVP
+- Dados seed para demonstrar (1 admin, 1 recepção, 1 profissional, 5 pacientes, 10 consultas)
+
+Priorize um MVP funcionando ponta a ponta:
+cadastro -> agendamento -> atendimento -> prontuário -> recebimento -> relatórios.
