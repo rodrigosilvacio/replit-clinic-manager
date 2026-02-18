@@ -197,7 +197,10 @@ export async function registerRoutes(
 
   app.post("/api/consultas", requireAuth, requireRole("ADMIN", "RECEPCAO"), async (req, res) => {
     try {
-      const validated = insertConsultaSchema.parse(req.body);
+      const body = { ...req.body };
+      if (typeof body.inicio === "string") body.inicio = new Date(body.inicio);
+      if (typeof body.fim === "string") body.fim = new Date(body.fim);
+      const validated = insertConsultaSchema.parse(body);
       const result = await storage.createConsulta(validated);
       res.status(201).json(result);
     } catch (err: any) {
