@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["ADMIN", "RECEPCAO", "PROFISSIONAL_SAUDE", "FINANCEIRO"] },
   { title: "Pacientes", url: "/pacientes", icon: Users, roles: ["ADMIN", "RECEPCAO", "PROFISSIONAL_SAUDE"] },
+  { title: "Profissionais", url: "/medicos", icon: Stethoscope, roles: ["ADMIN", "RECEPCAO"] },
   { title: "Agenda", url: "/agenda", icon: Calendar, roles: ["ADMIN", "RECEPCAO", "PROFISSIONAL_SAUDE"] },
   { title: "Consultas", url: "/consultas", icon: ClipboardList, roles: ["ADMIN", "RECEPCAO", "PROFISSIONAL_SAUDE"] },
   { title: "Prontuario", url: "/prontuario", icon: FileText, roles: ["ADMIN", "PROFISSIONAL_SAUDE"] },

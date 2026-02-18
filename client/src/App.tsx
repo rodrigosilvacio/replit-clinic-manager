@@ -19,6 +19,7 @@ import ProntuarioPage from "@/pages/prontuario";
 import EstoquePage from "@/pages/estoque";
 import FinanceiroPage from "@/pages/financeiro";
 import ConfiguracoesPage from "@/pages/configuracoes";
+import MedicosPage from "@/pages/medicos";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/prontuario" component={ProntuarioPage} />
       <Route path="/estoque" component={EstoquePage} />
       <Route path="/financeiro" component={FinanceiroPage} />
+      <Route path="/medicos" component={MedicosPage} />
       <Route path="/configuracoes" component={ConfiguracoesPage} />
       <Route component={NotFound} />
     </Switch>
