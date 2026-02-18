@@ -36,6 +36,7 @@ export interface IStorage {
   getSalas(): Promise<Sala[]>;
   createSala(data: InsertSala): Promise<Sala>;
 
+  checkConsultaConflict(colaboradorId: number, inicio: Date, fim: Date, excludeId?: number): Promise<boolean>;
   getConsultas(): Promise<any[]>;
   getConsulta(id: number): Promise<Consulta | undefined>;
   createConsulta(data: InsertConsulta): Promise<Consulta>;
@@ -129,6 +130,22 @@ export class DatabaseStorage implements IStorage {
   async createSala(data: InsertSala): Promise<Sala> {
     const [result] = await db.insert(salas).values(data).returning();
     return result;
+  }
+
+  async checkConsultaConflict(colaboradorId: number, inicio: Date, fim: Date, excludeId?: number): Promise<boolean> {
+    const conditions = [
+      eq(consultas.colaboradorId, colaboradorId),
+      sql`${consultas.status} NOT IN ('CANCELADA', 'FALTOU')`,
+      sql`${consultas.inicio} < ${fim}`,
+      sql`${consultas.fim} > ${inicio}`,
+    ];
+    if (excludeId !== undefined) {
+      conditions.push(sql`${consultas.id} != ${excludeId}`);
+    }
+    const conflicts = await db.select({ id: consultas.id }).from(consultas)
+      .where(and(...conditions))
+      .limit(1);
+    return conflicts.length > 0;
   }
 
   async getConsultas(): Promise<any[]> {

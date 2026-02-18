@@ -201,6 +201,8 @@ export async function registerRoutes(
       if (typeof body.inicio === "string") body.inicio = new Date(body.inicio);
       if (typeof body.fim === "string") body.fim = new Date(body.fim);
       const validated = insertConsultaSchema.parse(body);
+      const conflict = await storage.checkConsultaConflict(validated.colaboradorId, validated.inicio, validated.fim);
+      if (conflict) return res.status(409).json({ message: "Ja existe uma consulta agendada para este profissional neste horario" });
       const result = await storage.createConsulta(validated);
       res.status(201).json(result);
     } catch (err: any) {
@@ -210,7 +212,7 @@ export async function registerRoutes(
 
   app.patch("/api/consultas/:id/status", requireAuth, requireRole("ADMIN", "RECEPCAO", "PROFISSIONAL_SAUDE"), async (req, res) => {
     try {
-      const { status } = z.object({ status: z.string() }).parse(req.body);
+      const { status, formaPagamento } = z.object({ status: z.string(), formaPagamento: z.string().optional() }).parse(req.body);
       const consultaId = Number(req.params.id);
       const result = await storage.updateConsultaStatus(consultaId, status);
       if (!result) return res.status(404).json({ message: "Consulta nao encontrada" });
@@ -229,7 +231,7 @@ export async function registerRoutes(
                 pacienteId: consulta.pacienteId,
                 descricao: `${servico.nome} - ${paciente?.nome || "Paciente"}`,
                 valor: servico.preco,
-                formaPagamento: "DINHEIRO",
+                formaPagamento: (formaPagamento || "DINHEIRO") as any,
                 status: "PENDENTE",
                 dataCompetencia: today,
                 dataPagamento: null,

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, date, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, date, numeric, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -41,7 +41,10 @@ export const pacientes = pgTable("pacientes", {
   consentimentoLgpd: boolean("consentimento_lgpd").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("pacientes_cpf_idx").on(table.cpf),
+  index("pacientes_email_idx").on(table.email),
+]);
 
 export const servicos = pgTable("servicos", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -71,7 +74,11 @@ export const consultas = pgTable("consultas", {
   observacoes: text("observacoes"),
   encaixe: boolean("encaixe").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("consultas_inicio_idx").on(table.inicio),
+  index("consultas_colaborador_idx").on(table.colaboradorId),
+  index("consultas_paciente_idx").on(table.pacienteId),
+]);
 
 export const registrosProntuario = pgTable("registros_prontuario", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -114,7 +121,10 @@ export const recebimentos = pgTable("recebimentos", {
   dataCompetencia: date("data_competencia").notNull(),
   dataPagamento: date("data_pagamento"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("recebimentos_consulta_idx").on(table.consultaId),
+  index("recebimentos_data_idx").on(table.dataCompetencia),
+]);
 
 export const pagamentos = pgTable("pagamentos", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
