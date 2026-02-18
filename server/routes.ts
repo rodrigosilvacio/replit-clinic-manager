@@ -349,6 +349,17 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/financeiro/recebimentos/:id", requireAuth, requireRole("ADMIN", "FINANCEIRO", "RECEPCAO"), async (req, res) => {
+    try {
+      const validated = insertRecebimentoSchema.partial().parse(req.body);
+      const result = await storage.updateRecebimento(Number(req.params.id), validated);
+      if (!result) return res.status(404).json({ message: "Recebimento nao encontrado" });
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   app.get("/api/financeiro/pagamentos", requireAuth, requireRole("ADMIN", "FINANCEIRO"), async (_req, res) => {
     const data = await storage.getPagamentos();
     res.json(data);
@@ -359,6 +370,17 @@ export async function registerRoutes(
       const validated = insertPagamentoSchema.parse(req.body);
       const result = await storage.createPagamento(validated);
       res.status(201).json(result);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/financeiro/pagamentos/:id", requireAuth, requireRole("ADMIN", "FINANCEIRO"), async (req, res) => {
+    try {
+      const validated = insertPagamentoSchema.partial().parse(req.body);
+      const result = await storage.updatePagamento(Number(req.params.id), validated);
+      if (!result) return res.status(404).json({ message: "Pagamento nao encontrado" });
+      res.json(result);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }

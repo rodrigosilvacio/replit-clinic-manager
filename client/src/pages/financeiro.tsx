@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, DollarSign, TrendingUp, TrendingDown, Loader2, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Plus, TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, CheckCircle, Undo2 } from "lucide-react";
 import { format } from "date-fns";
 import type { Recebimento, Pagamento } from "@shared/schema";
 
@@ -42,6 +42,46 @@ export default function FinanceiroPage() {
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
+  const updateRecMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/financeiro/recebimentos/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/financeiro/recebimentos"] });
+      toast({ title: "Recebimento atualizado" });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const updatePagMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/financeiro/pagamentos/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/financeiro/pagamentos"] });
+      toast({ title: "Pagamento atualizado" });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const confirmarRecebimento = (id: number) => {
+    const hoje = format(new Date(), "yyyy-MM-dd");
+    updateRecMutation.mutate({ id, data: { status: "PAGO", dataPagamento: hoje } });
+  };
+
+  const estornarRecebimento = (id: number) => {
+    updateRecMutation.mutate({ id, data: { status: "ESTORNADO", dataPagamento: null } });
+  };
+
+  const voltarPendenteRec = (id: number) => {
+    updateRecMutation.mutate({ id, data: { status: "PENDENTE", dataPagamento: null } });
+  };
+
+  const confirmarPagamento = (id: number) => {
+    const hoje = format(new Date(), "yyyy-MM-dd");
+    updatePagMutation.mutate({ id, data: { status: "PAGO", dataPagamento: hoje } });
+  };
+
+  const voltarPendentePag = (id: number) => {
+    updatePagMutation.mutate({ id, data: { status: "PENDENTE", dataPagamento: null } });
+  };
+
   const totalRecebido = recebimentos?.filter(r => r.status === "PAGO").reduce((sum, r) => sum + Number(r.valor), 0) || 0;
   const totalPendente = recebimentos?.filter(r => r.status === "PENDENTE").reduce((sum, r) => sum + Number(r.valor), 0) || 0;
   const totalPago = pagamentos?.filter(p => p.status === "PAGO").reduce((sum, p) => sum + Number(p.valor), 0) || 0;
@@ -63,6 +103,8 @@ export default function FinanceiroPage() {
     });
   };
 
+  const isUpdating = updateRecMutation.isPending || updatePagMutation.isPending;
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -76,7 +118,7 @@ export default function FinanceiroPage() {
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-sm text-muted-foreground">Recebido</p>
-                <p className="text-2xl font-semibold text-green-600 mt-1">
+                <p className="text-2xl font-semibold text-green-600 mt-1" data-testid="text-total-recebido">
                   R$ {totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -91,7 +133,7 @@ export default function FinanceiroPage() {
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-sm text-muted-foreground">A Receber</p>
-                <p className="text-2xl font-semibold text-amber-600 mt-1">
+                <p className="text-2xl font-semibold text-amber-600 mt-1" data-testid="text-total-pendente">
                   R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -106,7 +148,7 @@ export default function FinanceiroPage() {
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-sm text-muted-foreground">Total Pago</p>
-                <p className="text-2xl font-semibold text-red-600 mt-1">
+                <p className="text-2xl font-semibold text-red-600 mt-1" data-testid="text-total-pago">
                   R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -132,6 +174,8 @@ export default function FinanceiroPage() {
           </div>
           {loadingRec ? (
             <Card><CardContent className="p-6"><div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div></CardContent></Card>
+          ) : !recebimentos?.length ? (
+            <Card><CardContent className="p-12 text-center"><p className="text-muted-foreground">Nenhum recebimento cadastrado</p></CardContent></Card>
           ) : (
             <Card>
               <CardContent className="p-0">
@@ -143,6 +187,7 @@ export default function FinanceiroPage() {
                       <TableHead className="hidden md:table-cell">Forma</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="hidden md:table-cell">Data</TableHead>
+                      <TableHead className="text-right">Acoes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -153,11 +198,51 @@ export default function FinanceiroPage() {
                         <TableCell className="hidden md:table-cell"><Badge variant="secondary">{formaPagLabels[r.formaPagamento]}</Badge></TableCell>
                         <TableCell>
                           <Badge variant={r.status === "PAGO" ? "default" : "secondary"}
-                            className={r.status === "PAGO" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : r.status === "ESTORNADO" ? "bg-red-100 text-red-700" : ""}>
+                            className={r.status === "PAGO" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : r.status === "ESTORNADO" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" : ""}>
                             {r.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-muted-foreground">{r.dataCompetencia}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {r.status === "PENDENTE" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => confirmarRecebimento(r.id)}
+                                disabled={isUpdating}
+                                data-testid={`button-confirmar-recebimento-${r.id}`}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1 text-green-600" />
+                                Confirmar
+                              </Button>
+                            )}
+                            {r.status === "PAGO" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => estornarRecebimento(r.id)}
+                                disabled={isUpdating}
+                                data-testid={`button-estornar-recebimento-${r.id}`}
+                              >
+                                <Undo2 className="w-4 h-4 mr-1 text-red-600" />
+                                Estornar
+                              </Button>
+                            )}
+                            {r.status === "ESTORNADO" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => voltarPendenteRec(r.id)}
+                                disabled={isUpdating}
+                                data-testid={`button-pendente-recebimento-${r.id}`}
+                              >
+                                <Undo2 className="w-4 h-4 mr-1" />
+                                Voltar Pendente
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -175,6 +260,8 @@ export default function FinanceiroPage() {
           </div>
           {loadingPag ? (
             <Card><CardContent className="p-6"><div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div></CardContent></Card>
+          ) : !pagamentos?.length ? (
+            <Card><CardContent className="p-12 text-center"><p className="text-muted-foreground">Nenhum pagamento cadastrado</p></CardContent></Card>
           ) : (
             <Card>
               <CardContent className="p-0">
@@ -186,6 +273,7 @@ export default function FinanceiroPage() {
                       <TableHead className="hidden md:table-cell">Categoria</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="hidden md:table-cell">Data</TableHead>
+                      <TableHead className="text-right">Acoes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -201,6 +289,34 @@ export default function FinanceiroPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-muted-foreground">{p.dataCompetencia}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {p.status === "PENDENTE" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => confirmarPagamento(p.id)}
+                                disabled={isUpdating}
+                                data-testid={`button-confirmar-pagamento-${p.id}`}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1 text-green-600" />
+                                Confirmar
+                              </Button>
+                            )}
+                            {p.status === "PAGO" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => voltarPendentePag(p.id)}
+                                disabled={isUpdating}
+                                data-testid={`button-pendente-pagamento-${p.id}`}
+                              >
+                                <Undo2 className="w-4 h-4 mr-1" />
+                                Voltar Pendente
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -221,7 +337,7 @@ export default function FinanceiroPage() {
               <div className="space-y-2">
                 <Label>Forma Pagamento</Label>
                 <Select value={recForm.formaPagamento} onValueChange={v => setRecForm({...recForm, formaPagamento: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-testid="select-rec-forma"><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(formaPagLabels).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
@@ -230,16 +346,16 @@ export default function FinanceiroPage() {
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={recForm.status} onValueChange={v => setRecForm({...recForm, status: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-testid="select-rec-status"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="PENDENTE">Pendente</SelectItem><SelectItem value="PAGO">Pago</SelectItem><SelectItem value="ESTORNADO">Estornado</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Data Competencia *</Label><Input type="date" value={recForm.dataCompetencia} onChange={e => setRecForm({...recForm, dataCompetencia: e.target.value})} required /></div>
+              <div className="space-y-2"><Label>Data Competencia *</Label><Input type="date" value={recForm.dataCompetencia} onChange={e => setRecForm({...recForm, dataCompetencia: e.target.value})} required data-testid="input-rec-data" /></div>
             </div>
-            <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={recForm.dataPagamento} onChange={e => setRecForm({...recForm, dataPagamento: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={recForm.dataPagamento} onChange={e => setRecForm({...recForm, dataPagamento: e.target.value})} data-testid="input-rec-data-pagamento" /></div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={() => setRecDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={createRecMutation.isPending}>{createRecMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cadastrar"}</Button>
+              <Button type="button" variant="outline" onClick={() => setRecDialogOpen(false)} data-testid="button-cancel-recebimento">Cancelar</Button>
+              <Button type="submit" disabled={createRecMutation.isPending} data-testid="button-save-recebimento">{createRecMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cadastrar"}</Button>
             </div>
           </form>
         </DialogContent>
@@ -252,22 +368,22 @@ export default function FinanceiroPage() {
             <div className="space-y-2"><Label>Descricao *</Label><Input value={pagForm.descricao} onChange={e => setPagForm({...pagForm, descricao: e.target.value})} required data-testid="input-pag-descricao" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Valor *</Label><Input type="number" step="0.01" min={0} value={pagForm.valor} onChange={e => setPagForm({...pagForm, valor: e.target.value})} required data-testid="input-pag-valor" /></div>
-              <div className="space-y-2"><Label>Categoria</Label><Input value={pagForm.categoria} onChange={e => setPagForm({...pagForm, categoria: e.target.value})} /></div>
+              <div className="space-y-2"><Label>Categoria</Label><Input value={pagForm.categoria} onChange={e => setPagForm({...pagForm, categoria: e.target.value})} data-testid="input-pag-categoria" /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={pagForm.status} onValueChange={v => setPagForm({...pagForm, status: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-testid="select-pag-status"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="PENDENTE">Pendente</SelectItem><SelectItem value="PAGO">Pago</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Data Competencia *</Label><Input type="date" value={pagForm.dataCompetencia} onChange={e => setPagForm({...pagForm, dataCompetencia: e.target.value})} required /></div>
+              <div className="space-y-2"><Label>Data Competencia *</Label><Input type="date" value={pagForm.dataCompetencia} onChange={e => setPagForm({...pagForm, dataCompetencia: e.target.value})} required data-testid="input-pag-data" /></div>
             </div>
-            <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={pagForm.dataPagamento} onChange={e => setPagForm({...pagForm, dataPagamento: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={pagForm.dataPagamento} onChange={e => setPagForm({...pagForm, dataPagamento: e.target.value})} data-testid="input-pag-data-pagamento" /></div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={() => setPagDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={createPagMutation.isPending}>{createPagMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cadastrar"}</Button>
+              <Button type="button" variant="outline" onClick={() => setPagDialogOpen(false)} data-testid="button-cancel-pagamento">Cancelar</Button>
+              <Button type="submit" disabled={createPagMutation.isPending} data-testid="button-save-pagamento">{createPagMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cadastrar"}</Button>
             </div>
           </form>
         </DialogContent>

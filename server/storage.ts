@@ -54,8 +54,10 @@ export interface IStorage {
   getRecebimentos(): Promise<Recebimento[]>;
   getRecebimentoByConsultaId(consultaId: number): Promise<Recebimento | undefined>;
   createRecebimento(data: InsertRecebimento): Promise<Recebimento>;
+  updateRecebimento(id: number, data: Partial<InsertRecebimento>): Promise<Recebimento | undefined>;
   getPagamentos(): Promise<Pagamento[]>;
   createPagamento(data: InsertPagamento): Promise<Pagamento>;
+  updatePagamento(id: number, data: Partial<InsertPagamento>): Promise<Pagamento | undefined>;
 
   getDashboardData(): Promise<any>;
 }
@@ -278,12 +280,22 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async updateRecebimento(id: number, data: Partial<InsertRecebimento>): Promise<Recebimento | undefined> {
+    const [result] = await db.update(recebimentos).set(data).where(eq(recebimentos.id, id)).returning();
+    return result;
+  }
+
   async getPagamentos(): Promise<Pagamento[]> {
     return db.select().from(pagamentos).orderBy(desc(pagamentos.createdAt));
   }
 
   async createPagamento(data: InsertPagamento): Promise<Pagamento> {
     const [result] = await db.insert(pagamentos).values(data).returning();
+    return result;
+  }
+
+  async updatePagamento(id: number, data: Partial<InsertPagamento>): Promise<Pagamento | undefined> {
+    const [result] = await db.update(pagamentos).set(data).where(eq(pagamentos.id, id)).returning();
     return result;
   }
 
