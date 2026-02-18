@@ -29,6 +29,7 @@ export interface IStorage {
   updatePaciente(id: number, data: Partial<InsertPaciente>): Promise<Paciente | undefined>;
 
   getServicos(): Promise<Servico[]>;
+  getServico(id: number): Promise<Servico | undefined>;
   createServico(data: InsertServico): Promise<Servico>;
   updateServico(id: number, data: Partial<InsertServico>): Promise<Servico | undefined>;
 
@@ -50,6 +51,7 @@ export interface IStorage {
   createMovimentacaoEstoque(data: InsertMovimentacaoEstoque): Promise<MovimentacaoEstoque>;
 
   getRecebimentos(): Promise<Recebimento[]>;
+  getRecebimentoByConsultaId(consultaId: number): Promise<Recebimento | undefined>;
   createRecebimento(data: InsertRecebimento): Promise<Recebimento>;
   getPagamentos(): Promise<Pagamento[]>;
   createPagamento(data: InsertPagamento): Promise<Pagamento>;
@@ -103,6 +105,11 @@ export class DatabaseStorage implements IStorage {
 
   async getServicos(): Promise<Servico[]> {
     return db.select().from(servicos).orderBy(servicos.nome);
+  }
+
+  async getServico(id: number): Promise<Servico | undefined> {
+    const [result] = await db.select().from(servicos).where(eq(servicos.id, id)).limit(1);
+    return result;
   }
 
   async createServico(data: InsertServico): Promise<Servico> {
@@ -242,6 +249,11 @@ export class DatabaseStorage implements IStorage {
 
   async getRecebimentos(): Promise<Recebimento[]> {
     return db.select().from(recebimentos).orderBy(desc(recebimentos.createdAt));
+  }
+
+  async getRecebimentoByConsultaId(consultaId: number): Promise<Recebimento | undefined> {
+    const [result] = await db.select().from(recebimentos).where(eq(recebimentos.consultaId, consultaId)).limit(1);
+    return result;
   }
 
   async createRecebimento(data: InsertRecebimento): Promise<Recebimento> {

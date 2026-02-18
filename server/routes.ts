@@ -211,8 +211,34 @@ export async function registerRoutes(
   app.patch("/api/consultas/:id/status", requireAuth, requireRole("ADMIN", "RECEPCAO", "PROFISSIONAL_SAUDE"), async (req, res) => {
     try {
       const { status } = z.object({ status: z.string() }).parse(req.body);
-      const result = await storage.updateConsultaStatus(Number(req.params.id), status);
+      const consultaId = Number(req.params.id);
+      const result = await storage.updateConsultaStatus(consultaId, status);
       if (!result) return res.status(404).json({ message: "Consulta nao encontrada" });
+
+      if (status === "CONCLUIDA") {
+        const existing = await storage.getRecebimentoByConsultaId(consultaId);
+        if (!existing) {
+          const consulta = await storage.getConsulta(consultaId);
+          if (consulta) {
+            const servico = await storage.getServico(consulta.servicoId);
+            const paciente = await storage.getPaciente(consulta.pacienteId);
+            if (servico) {
+              const today = new Date().toISOString().split("T")[0];
+              await storage.createRecebimento({
+                consultaId: consulta.id,
+                pacienteId: consulta.pacienteId,
+                descricao: `${servico.nome} - ${paciente?.nome || "Paciente"}`,
+                valor: servico.preco,
+                formaPagamento: "DINHEIRO",
+                status: "PENDENTE",
+                dataCompetencia: today,
+                dataPagamento: null,
+              });
+            }
+          }
+        }
+      }
+
       res.json(result);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
